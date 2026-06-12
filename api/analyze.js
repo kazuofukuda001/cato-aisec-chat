@@ -1,34 +1,48 @@
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+export const config = { runtime: "edge" };
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+export default async function handler(req) {
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 200, headers });
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405, headers: { ...headers, "Content-Type": "application/json" }
+    });
   }
 
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers.get("authorization");
   if (!authHeader) {
-    return res.status(401).json({ error: 'Authorization header required' });
+    return new Response(JSON.stringify({ error: "Authorization header required" }), {
+      status: 401, headers: { ...headers, "Content-Type": "application/json" }
+    });
   }
 
   try {
-    const catoRes = await fetch('https://api.aisec.catonetworks.com/fw/v1/analyze', {
-      method: 'POST',
+    const body = await req.json();
+    const catoRes = await fetch("https://api.aisec.catonetworks.com/fw/v1/analyze", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
+        "Content-Type": "application/json",
+        "Authorization": authHeader,
       },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify(body),
     });
 
-    const data = await catoRes.json();
-    return res.status(catoRes.status).json(data);
+    const data = await catoRes.text();
+    return new Response(data, {
+      status: catoRes.status,
+      headers: { ...headers, "Content-Type": "application/json" }
+    });
   } catch (err) {
-    return res.status(502).json({ error: 'Cato API connection failed', detail: err.message });
+    return new Response(JSON.stringify({ error: "Cato API connection failed", detail: err.message }), {
+      status: 502, headers: { ...headers, "Content-Type": "application/json" }
+    });
   }
 }
