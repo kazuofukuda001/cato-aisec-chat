@@ -557,6 +557,11 @@ function selectOWASP(id){
   document.getElementById('owaspPromptText').value=o.prompt;
   document.getElementById('owaspEditor').style.display='block';
   document.getElementById('owaspEditor').scrollIntoView({behavior:'smooth',block:'nearest'});
+  // チャット入力欄にプロンプトをコピー
+  const ta=document.getElementById('msgInput');
+  ta.value=o.prompt;
+  autoResize(ta);
+  ta.focus();
 }
 function closeOwaspEditor(){document.getElementById('owaspEditor').style.display='none';selectedOwaspId=null;renderOWASP();}
 function applyOwaspPrompt(){
@@ -604,6 +609,11 @@ function selectCase(caseId,indId){
   document.getElementById('industryPromptText').value=c.prompt;
   document.getElementById('industryEditor').style.display='block';
   document.getElementById('industryEditor').scrollIntoView({behavior:'smooth',block:'nearest'});
+  // チャット入力欄にプロンプトをコピー
+  const ta=document.getElementById('msgInput');
+  ta.value=c.prompt;
+  autoResize(ta);
+  ta.focus();
 }
 function closeIndustryEditor(){document.getElementById('industryEditor').style.display='none';selectedCaseId=null;renderIndustry();}
 function applyIndustryPrompt(){
