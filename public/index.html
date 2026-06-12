@@ -346,10 +346,20 @@ body{font-family:var(--fn);background:var(--bg);color:var(--t1);height:100vh;dis
       <div class="sec-label">🤖 Anthropic API Key</div>
       <div class="key-block">
         <div class="key-wrap">
-          <input id="anthropicKey" class="key-input" type="password" placeholder="sk-ant-..." oninput="onKeyInput()">
-          <button class="icon-btn" onclick="toggleShow('anthropicKey','anthropicPreview')">👁</button>
+          <select class="key-select" id="anthropicKeySelect" onchange="onSelectAnthropicKey()">
+            <option value="">— キーを選択または追加 —</option>
+          </select>
+          <button class="icon-btn" onclick="toggleShow('anthropicKey','anthropicPreview')" title="表示">👁</button>
+        </div>
+        <div class="key-wrap" style="margin-top:5px">
+          <input id="anthropicKey" class="key-input" type="password" placeholder="新しいキーを入力 (sk-ant-...)" oninput="onAnthropicKeyTyped()">
         </div>
         <div class="key-preview" id="anthropicPreview">—</div>
+        <div class="key-actions">
+          <input id="anthropicKeyName" class="key-input" style="flex:1;font-family:var(--fn)" placeholder="キー名（例: Production）">
+          <button class="btn-sm" onclick="saveAnthropicKey()">💾 保存</button>
+          <button class="btn-sm" onclick="deleteAnthropicKey()" id="delAnthropicBtn" style="display:none">🗑</button>
+        </div>
       </div>
 
       <div class="divider"></div>
@@ -597,6 +607,7 @@ const INDUSTRIES = [
 // STATE
 // ══════════════════════════════════════════
 let savedKeys = JSON.parse(localStorage.getItem('catoKeys') || '[]');
+let savedAnthropicKeys = JSON.parse(localStorage.getItem('anthropicKeys') || '[]');
 let activePrompt = null, activePolicyLabel = null;
 let history = [], busy = false;
 let scanCount=0, blockCount=0, allowCount=0, sessionMsgs=0;
@@ -623,6 +634,78 @@ function refreshKeySelect(){
   if(cur) sel.value=cur;
 }
 refreshKeySelect();
+
+function refreshAnthropicKeySelect(){
+  const sel=document.getElementById('anthropicKeySelect');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— キーを選択または追加 —</option>';
+  savedAnthropicKeys.forEach((k,i)=>{
+    const opt=document.createElement('option');
+    opt.value=i; opt.textContent=k.name+' ('+k.key.slice(0,8)+'…)';
+    sel.appendChild(opt);
+  });
+  if(cur) sel.value=cur;
+}
+refreshAnthropicKeySelect();
+
+function onSelectAnthropicKey(){
+  const idx=document.getElementById('anthropicKeySelect').value;
+  const delBtn=document.getElementById('delAnthropicBtn');
+  if(idx===''){
+    document.getElementById('anthropicKey').value='';
+    document.getElementById('anthropicKeyName').value='';
+    document.getElementById('anthropicPreview').textContent='—';
+    delBtn.style.display='none';
+    return;
+  }
+  const k=savedAnthropicKeys[parseInt(idx)];
+  document.getElementById('anthropicKey').value=k.key;
+  document.getElementById('anthropicKey').type='password';
+  document.getElementById('anthropicKeyName').value=k.name;
+  document.getElementById('anthropicPreview').textContent=k.key.length>12?k.key.slice(0,8)+'••••••'+k.key.slice(-4):'••••••••';
+  delBtn.style.display='inline-flex';
+  onKeyInput();
+}
+
+function onAnthropicKeyTyped(){
+  const val=document.getElementById('anthropicKey').value.trim();
+  document.getElementById('anthropicPreview').textContent=val?(val.length>12?val.slice(0,8)+'••••••'+val.slice(-4):'••••••••'):'—';
+  document.getElementById('anthropicKeySelect').value='';
+  document.getElementById('delAnthropicBtn').style.display='none';
+  onKeyInput();
+}
+
+function saveAnthropicKey(){
+  const key=document.getElementById('anthropicKey').value.trim();
+  const name=document.getElementById('anthropicKeyName').value.trim()||'キー '+(savedAnthropicKeys.length+1);
+  if(!key){toast('キーを入力してください');return;}
+  const selIdx=document.getElementById('anthropicKeySelect').value;
+  if(selIdx!==''){
+    savedAnthropicKeys[parseInt(selIdx)]={name,key};
+  } else {
+    savedAnthropicKeys.push({name,key});
+  }
+  localStorage.setItem('anthropicKeys',JSON.stringify(savedAnthropicKeys));
+  refreshAnthropicKeySelect();
+  document.getElementById('anthropicKeySelect').value=selIdx!==''?selIdx:savedAnthropicKeys.length-1;
+  onSelectAnthropicKey();
+  toast('"'+name+'" を保存しました');
+}
+
+function deleteAnthropicKey(){
+  const idx=parseInt(document.getElementById('anthropicKeySelect').value);
+  if(isNaN(idx))return;
+  const name=savedAnthropicKeys[idx].name;
+  savedAnthropicKeys.splice(idx,1);
+  localStorage.setItem('anthropicKeys',JSON.stringify(savedAnthropicKeys));
+  refreshAnthropicKeySelect();
+  document.getElementById('anthropicKey').value='';
+  document.getElementById('anthropicKeyName').value='';
+  document.getElementById('anthropicPreview').textContent='—';
+  document.getElementById('delAnthropicBtn').style.display='none';
+  toast('"'+name+'" を削除しました');
+  onKeyInput();
+}
 
 function onSelectKey(){
   const idx=document.getElementById('guardKeySelect').value;
@@ -699,10 +782,6 @@ function onKeyInput(){
   document.getElementById('runBtn').disabled=!has;
   document.getElementById('sendBtn').disabled=!has||busy;
   if(!has)setStatus('off');
-  // anthropic preview
-  const ak=document.getElementById('anthropicKey').value.trim();
-  const ap=document.getElementById('anthropicPreview');
-  ap.textContent=ak?(ak.length>12?ak.slice(0,8)+'••••••'+ak.slice(-4):'••••••••'):'—';
 }
 
 // ══════════════════════════════════════════
