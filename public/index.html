@@ -187,11 +187,119 @@ body{font-family:var(--fn);background:var(--bg);color:var(--t1);height:100vh;dis
 /* TOAST */
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--s3);border:1px solid var(--bd2);color:var(--t1);font-size:12px;padding:7px 18px;border-radius:20px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ══ MFA OVERLAY ══ */
+.mfa-overlay{position:fixed;inset:0;z-index:2000;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.mfa-overlay.hidden{display:none}
+.mfa-card{background:var(--s1);border:1px solid var(--bd2);border-radius:var(--rx);padding:40px 44px;width:420px;max-width:92vw;position:relative}
+.mfa-card::before{content:'';position:absolute;inset:-1px;border-radius:var(--rx);background:linear-gradient(135deg,var(--cglow),transparent 60%);z-index:-1;opacity:.5}
+.mfa-logo{width:52px;height:52px;border-radius:14px;background:var(--cdim);border:1px solid var(--cglow);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 20px}
+.mfa-title{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;letter-spacing:-.3px}
+.mfa-sub{font-size:13px;color:var(--t2);text-align:center;margin-bottom:28px;line-height:1.6}
+.mfa-step{display:none}.mfa-step.active{display:block}
+.mfa-field{margin-bottom:14px}
+.mfa-label{font-size:11px;font-weight:500;color:var(--t2);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.06em}
+.mfa-input{width:100%;font-size:14px;padding:11px 14px;border:1px solid var(--bd2);border-radius:var(--r);background:var(--s2);color:var(--t1);outline:none;font-family:var(--fn);transition:border-color .2s,box-shadow .2s}
+.mfa-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cdim)}
+.mfa-input::placeholder{color:var(--t3)}
+.mfa-btn{width:100%;padding:12px;border-radius:var(--r);border:none;background:linear-gradient(135deg,var(--cyan),#0074b7);color:#05080f;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;margin-top:4px;letter-spacing:.02em}
+.mfa-btn:hover{opacity:.88}
+.mfa-btn.ghost{background:transparent;color:var(--t2);border:1px solid var(--bd2);font-weight:500;margin-top:8px}
+.mfa-btn.ghost:hover{border-color:var(--bd);color:var(--t1)}
+.step-dots{display:flex;justify-content:center;gap:7px;margin-bottom:24px}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--bd2);transition:all .3s}
+.step-dot.active{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+.step-dot.done{background:var(--green)}
+.mfa-err{font-size:12px;color:var(--red);text-align:center;margin-top:8px;min-height:18px}
+.otp-row{display:flex;gap:8px;justify-content:center;margin:4px 0}
+.otp-box{width:44px;height:54px;border-radius:var(--r);border:1px solid var(--bd2);background:var(--s2);color:var(--cyan);font-size:22px;font-weight:700;text-align:center;outline:none;font-family:var(--fm);transition:border-color .2s,box-shadow .2s}
+.otp-box:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cdim)}
+.mfa-qr-row{display:flex;gap:14px;align-items:center;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;margin-bottom:16px}
+.qr-block{width:72px;height:72px;border-radius:7px;background:#fff;display:grid;grid-template-columns:repeat(9,1fr);gap:1px;padding:5px;flex-shrink:0}
+.qr-c{border-radius:1px}
+.qr-info{flex:1}
+.qr-app{font-size:11px;color:var(--t2);margin-bottom:4px}
+.qr-apps{font-size:10px;color:var(--t3);line-height:1.5}
+.qr-secret{font-size:11px;color:var(--cyan);font-family:var(--fm);margin-top:6px;letter-spacing:.05em}
+.mfa-progress{height:3px;border-radius:2px;background:var(--bd);margin-top:24px;overflow:hidden}
+.mfa-progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--cyan),#0074b7);transition:width .4s ease}
+.success-icon{font-size:52px;text-align:center;margin-bottom:16px;animation:pop .4s ease}
+@keyframes pop{0%{transform:scale(.5);opacity:0}80%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+.session-info{font-size:11px;font-family:var(--fm);color:var(--t3);text-align:center;margin:12px 0;padding:8px;background:var(--s2);border-radius:var(--r);border:1px solid var(--bd)}
 </style>
 </head>
 <body>
 
 <!-- TOPBAR -->
+
+<!-- ══ MFA OVERLAY ══ -->
+<div class="mfa-overlay" id="mfaOverlay">
+  <div class="mfa-card">
+    <div class="mfa-logo">🛡️</div>
+    <div class="step-dots">
+      <div class="step-dot active" id="dot1"></div>
+      <div class="step-dot" id="dot2"></div>
+      <div class="step-dot" id="dot3"></div>
+    </div>
+
+    <!-- Step 1: Login -->
+    <div class="mfa-step active" id="mfaStep1">
+      <div class="mfa-title">サインイン</div>
+      <div class="mfa-sub">Cato AI Security にアクセスする</div>
+      <div class="mfa-field">
+        <label class="mfa-label">メールアドレス</label>
+        <input class="mfa-input" id="loginEmail" type="email" placeholder="user@company.com" value="admin@cato-security.io">
+      </div>
+      <div class="mfa-field">
+        <label class="mfa-label">パスワード</label>
+        <input class="mfa-input" id="loginPass" type="password" placeholder="••••••••" value="demo1234">
+      </div>
+      <div class="mfa-err" id="loginErr"></div>
+      <div class="mfa-progress"><div class="mfa-progress-fill" style="width:33%"></div></div>
+      <button class="mfa-btn" style="margin-top:18px" onclick="mfaStep1Next()">続ける →</button>
+    </div>
+
+    <!-- Step 2: MFA -->
+    <div class="mfa-step" id="mfaStep2">
+      <div class="mfa-title">二段階認証</div>
+      <div class="mfa-sub">認証アプリの 6 桁コードを入力してください</div>
+      <div class="mfa-qr-row">
+        <div class="qr-block" id="qrBlock"></div>
+        <div class="qr-info">
+          <div class="qr-app">認証アプリでスキャン</div>
+          <div class="qr-apps">Google Authenticator<br>Microsoft Authenticator<br>Authy</div>
+          <div class="qr-secret" id="qrSecret">CATO-XXXX-XXXX</div>
+        </div>
+      </div>
+      <div class="otp-row">
+        <input class="otp-box" id="o1" maxlength="1" oninput="otpInput(this,'o2')" onkeydown="otpKey(event,this,'')">
+        <input class="otp-box" id="o2" maxlength="1" oninput="otpInput(this,'o3')" onkeydown="otpKey(event,this,'o1')">
+        <input class="otp-box" id="o3" maxlength="1" oninput="otpInput(this,'o4')" onkeydown="otpKey(event,this,'o2')">
+        <input class="otp-box" id="o4" maxlength="1" oninput="otpInput(this,'o5')" onkeydown="otpKey(event,this,'o3')">
+        <input class="otp-box" id="o5" maxlength="1" oninput="otpInput(this,'o6')" onkeydown="otpKey(event,this,'o4')">
+        <input class="otp-box" id="o6" maxlength="1" oninput="otpLast(this)"       onkeydown="otpKey(event,this,'o5')">
+      </div>
+      <div class="mfa-err" id="otpErr"></div>
+      <div style="font-size:11px;color:var(--t3);text-align:center;margin-top:8px">
+        デモ用コード: <span style="color:var(--cyan);font-family:var(--fm)">123456</span>
+      </div>
+      <div class="mfa-progress" style="margin-top:20px"><div class="mfa-progress-fill" style="width:66%"></div></div>
+      <button class="mfa-btn" style="margin-top:16px" onclick="mfaStep2Verify()">確認する</button>
+      <button class="mfa-btn ghost" onclick="mfaGoStep(1)">← 戻る</button>
+    </div>
+
+    <!-- Step 3: Success -->
+    <div class="mfa-step" id="mfaStep3">
+      <div class="success-icon">✅</div>
+      <div class="mfa-title">認証完了</div>
+      <div class="mfa-sub">Cato AI Security へようこそ</div>
+      <div class="session-info" id="sessionInfo">セッション ID: —</div>
+      <div class="mfa-progress"><div class="mfa-progress-fill" style="width:100%"></div></div>
+      <button class="mfa-btn" style="margin-top:18px" onclick="mfaEnter()">ダッシュボードへ →</button>
+    </div>
+  </div>
+</div>
+
 <div class="topbar">
   <div class="brand">
     <div class="brand-logo">🛡️</div>
@@ -347,6 +455,83 @@ body{font-family:var(--fn);background:var(--bg);color:var(--t1);height:100vh;dis
 <div id="toast"></div>
 
 <script>
+
+// ══════════════════════════════════════════
+// MFA AUTH
+// ══════════════════════════════════════════
+(function initMFA(){
+  // QRコードをランダムドットで生成
+  const qr = document.getElementById('qrBlock');
+  if(qr){
+    // 角のパターン（固定）
+    const corners = new Set([0,1,2,3,4,5,6,9,13,18,27,36,45,54,63,56,57,58,59,60,61,62,72,76,74,75,76,77]);
+    for(let i=0;i<81;i++){
+      const d=document.createElement('div');
+      d.className='qr-c';
+      d.style.background=corners.has(i)||Math.random()>.45?'#000':'#fff';
+      qr.appendChild(d);
+    }
+  }
+  // ランダムなシークレットキーを生成
+  const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let secret='CATO-';
+  for(let i=0;i<4;i++) secret+=chars[Math.floor(Math.random()*chars.length)];
+  secret+='-';
+  for(let i=0;i<4;i++) secret+=chars[Math.floor(Math.random()*chars.length)];
+  const el=document.getElementById('qrSecret');
+  if(el) el.textContent=secret;
+  // セッションチェック
+  if(sessionStorage.getItem('mfaAuth')==='ok'){
+    document.getElementById('mfaOverlay').classList.add('hidden');
+  }
+})();
+
+function mfaGoStep(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('mfaStep'+i).classList.toggle('active',i===n);
+    const dot=document.getElementById('dot'+i);
+    dot.className='step-dot'+(i<n?' done':i===n?' active':'');
+  });
+}
+
+function mfaStep1Next(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value.trim();
+  const err=document.getElementById('loginErr');
+  if(!email||!pass){err.textContent='メールとパスワードを入力してください';return;}
+  if(pass.length<6){err.textContent='パスワードが短すぎます';return;}
+  err.textContent='';
+  mfaGoStep(2);
+  document.getElementById('o1').focus();
+}
+
+function otpInput(el,nextId){
+  el.value=el.value.replace(/[^0-9]/g,'');
+  if(el.value.length===1&&nextId) document.getElementById(nextId)?.focus();
+}
+function otpKey(e,el,prevId){
+  if(e.key==='Backspace'&&el.value===''&&prevId) document.getElementById(prevId)?.focus();
+}
+function otpLast(el){
+  el.value=el.value.replace(/[^0-9]/g,'');
+}
+
+function mfaStep2Verify(){
+  const code=['o1','o2','o3','o4','o5','o6'].map(id=>document.getElementById(id).value).join('');
+  const err=document.getElementById('otpErr');
+  if(code.length<6){err.textContent='6桁のコードを入力してください';return;}
+  if(code!=='123456'){err.textContent='コードが正しくありません。デモコード: 123456';return;}
+  err.textContent='';
+  const sid='CSX-'+Math.random().toString(36).slice(2,7).toUpperCase()+'-'+Date.now().toString(36).toUpperCase();
+  document.getElementById('sessionInfo').textContent='セッション ID: '+sid;
+  mfaGoStep(3);
+}
+
+function mfaEnter(){
+  sessionStorage.setItem('mfaAuth','ok');
+  document.getElementById('mfaOverlay').classList.add('hidden');
+}
+
 // ══════════════════════════════════════════
 // DATA
 // ══════════════════════════════════════════
